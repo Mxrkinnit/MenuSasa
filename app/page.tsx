@@ -72,7 +72,11 @@ export default async function Home() {
       </header>
 
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <RestaurantMenu categories={typedCategories} />
+        <RestaurantMenu
+  categories={typedCategories}
+  restaurantId={restaurant.id}
+  tableId=""
+/>
       </div>
     </main>
   );
