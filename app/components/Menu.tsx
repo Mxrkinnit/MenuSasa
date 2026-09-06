@@ -59,10 +59,10 @@ export default function Menu({
 
                   <button
   onClick={() => onAddToCart(item)}
-                    className="mt-4 w-full rounded-lg bg-black px-4 py-3 font-medium text-white"
-                  >
-                    Add to Cart
-                  </button>
+  className="mt-4 w-full rounded-lg bg-black px-4 py-3 font-medium text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98]"
+>
+  Add to Cart
+</button>
                 </div>
               ))}
           </div>

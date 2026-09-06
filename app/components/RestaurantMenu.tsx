@@ -37,6 +37,7 @@ export default function RestaurantMenu({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSubmitted, setOrderSubmitted] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState("");
 
   function addToCart(item: MenuItem) {
@@ -166,34 +167,107 @@ const { error: orderError } = await supabase
   }
 
   return (
-    <div className="space-y-10">
-      <Menu
-        categories={categories}
-        onAddToCart={addToCart}
-      />
+  <div className="space-y-10">
+    {!isCheckingOut ? (
+      <>
+        <Menu
+          categories={categories}
+          onAddToCart={addToCart}
+        />
 
-      <Cart
-        cart={cart}
-        onIncrease={increaseQuantity}
-        onDecrease={decreaseQuantity}
-        onRemove={removeFromCart}
-      />
+        <Cart
+          cart={cart}
+          onIncrease={increaseQuantity}
+          onDecrease={decreaseQuantity}
+          onRemove={removeFromCart}
+        />
 
-      {cart.length > 0 && (
-        <button
-          onClick={placeOrder}
-          disabled={isSubmitting}
-          className="w-full rounded-lg bg-black px-4 py-4 font-semibold text-white disabled:opacity-50"
-        >
-          {isSubmitting ? "Placing Order..." : "Place Order"}
-        </button>
-      )}
+        {cart.length > 0 && (
+          <button
+            onClick={() => setIsCheckingOut(true)}
+            className="w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98]"
+          >
+            Checkout
+          </button>
+        )}
+      </>
+    ) : (
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="text-2xl font-bold">
+          Review Your Order
+        </h2>
 
-      {error && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
-          {error}
+        <p className="mt-2 text-gray-500">
+          Please check your order before placing it.
+        </p>
+
+        <div className="mt-6 space-y-4">
+          {cart.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center justify-between border-b pb-4"
+            >
+              <div>
+                <p className="font-semibold">
+                  {item.name}
+                </p>
+
+                <p className="text-sm text-gray-500">
+                  KSh {item.price} × {item.quantity}
+                </p>
+              </div>
+
+              <p className="font-semibold">
+                KSh {(item.price * item.quantity).toFixed(2)}
+              </p>
+            </div>
+          ))}
         </div>
-      )}
-    </div>
-  );
+
+        <div className="mt-6 flex items-center justify-between border-t pt-5">
+          <span className="text-lg font-bold">
+            Total
+          </span>
+
+          <span className="text-xl font-bold">
+            KSh{" "}
+            {cart
+              .reduce(
+                (sum, item) =>
+                  sum + item.price * item.quantity,
+                0
+              )
+              .toFixed(2)}
+          </span>
+        </div>
+
+        <div className="mt-6 space-y-3">
+          <button
+            onClick={placeOrder}
+            disabled={isSubmitting}
+            className="w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98] disabled:opacity-50"
+          >
+            {isSubmitting
+              ? "Placing Order..."
+              : "Place Order"}
+          </button>
+
+          <button
+            onClick={() => setIsCheckingOut(false)}
+            disabled={isSubmitting}
+            className="w-full rounded-lg border border-gray-300 px-4 py-4 font-semibold transition-all duration-150 hover:bg-gray-50 active:scale-[0.98]"
+          >
+            Back to Menu
+          </button>
+        </div>
+      </div>
+    )}
+
+    {error && (
+      <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
+        {error}
+      </div>
+    )}
+  </div>
+);
 }

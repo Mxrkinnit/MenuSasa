@@ -30,10 +30,16 @@ export default function Cart({
     0
   );
 
+  const itemCount = cart.reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
+
   if (cart.length === 0) {
     return (
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+      <div className="rounded-2xl bg-white p-6 shadow-sm">
         <h2 className="text-xl font-bold">Your Cart</h2>
+
         <p className="mt-2 text-gray-500">
           Your cart is empty.
         </p>
@@ -42,51 +48,73 @@ export default function Cart({
   }
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm">
-      <h2 className="mb-5 text-xl font-bold">Your Cart</h2>
+    <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b p-5">
+        <div>
+          <h2 className="text-xl font-bold">
+            Your Cart
+          </h2>
 
-      <div className="space-y-5">
+          <p className="mt-1 text-sm text-gray-500">
+            {itemCount}{" "}
+            {itemCount === 1 ? "item" : "items"}
+          </p>
+        </div>
+
+        <div className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium">
+          KSh {total.toFixed(2)}
+        </div>
+      </div>
+
+      <div className="divide-y">
         {cart.map((item) => (
           <div
             key={item.id}
-            className="border-b pb-5 last:border-b-0"
+            className="p-5"
           >
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="font-semibold">{item.name}</h3>
+              <div className="min-w-0">
+                <h3 className="font-semibold">
+                  {item.name}
+                </h3>
 
-                <p className="text-sm text-gray-500">
-                  KSh {item.price} each
+                <p className="mt-1 text-sm text-gray-500">
+                  KSh {item.price.toFixed(2)} each
                 </p>
               </div>
 
-              <p className="font-semibold">
-                KSh {(item.price * item.quantity).toFixed(2)}
+              <p className="whitespace-nowrap font-semibold">
+                KSh{" "}
+                {(item.price * item.quantity).toFixed(2)}
               </p>
             </div>
 
-            <div className="mt-3 flex items-center gap-3">
-              <button
-                onClick={() => onDecrease(item.id)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-200"
-              >
-                −
-              </button>
+            <div className="mt-4 flex items-center justify-between">
+              <div className="flex items-center rounded-lg border">
+                <button
+                  onClick={() => onDecrease(item.id)}
+                  className="flex h-10 w-10 items-center justify-center text-lg transition-all duration-150 hover:bg-gray-100 active:scale-90"
+                  aria-label={`Decrease ${item.name}`}
+                >
+                  −
+                </button>
 
-              <span className="w-6 text-center font-semibold">
-                {item.quantity}
-              </span>
+                <span className="w-10 text-center font-semibold">
+                  {item.quantity}
+                </span>
 
-              <button
-                onClick={() => onIncrease(item.id)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-200"
-              >
-                +
-              </button>
+                <button
+                  onClick={() => onIncrease(item.id)}
+                  className="flex h-10 w-10 items-center justify-center text-lg transition-all duration-150 hover:bg-gray-100 active:scale-90"
+                  aria-label={`Increase ${item.name}`}
+                >
+                  +
+                </button>
+              </div>
 
               <button
                 onClick={() => onRemove(item.id)}
-                className="ml-auto text-sm text-red-600"
+                className="text-sm text-red-600 transition-opacity hover:opacity-70"
               >
                 Remove
               </button>
@@ -95,17 +123,17 @@ export default function Cart({
         ))}
       </div>
 
-      <div className="mt-6 flex items-center justify-between border-t pt-5">
-        <span className="text-lg font-bold">Total</span>
+      <div className="border-t bg-gray-50 p-5">
+        <div className="flex items-center justify-between">
+          <span className="text-lg font-bold">
+            Total
+          </span>
 
-        <span className="text-xl font-bold">
-          KSh {total.toFixed(2)}
-        </span>
+          <span className="text-xl font-bold">
+            KSh {total.toFixed(2)}
+          </span>
+        </div>
       </div>
-
-      <button className="mt-5 w-full rounded-lg bg-black px-4 py-3 font-semibold text-white">
-        Checkout
-      </button>
     </div>
   );
 }
