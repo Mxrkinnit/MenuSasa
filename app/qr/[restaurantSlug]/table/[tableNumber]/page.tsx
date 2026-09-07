@@ -2,6 +2,7 @@ import QRCode from "../../../../components/QRCode";
 
 type PageProps = {
   params: Promise<{
+    restaurantSlug: string;
     tableNumber: string;
   }>;
 };
@@ -9,16 +10,16 @@ type PageProps = {
 export default async function TableQRPage({
   params,
 }: PageProps) {
-  const { tableNumber } = await params;
+  const { restaurantSlug, tableNumber } = await params;
 
   const menuUrl =
-    `http://localhost:3000/menu/marks-restaurant/table/${tableNumber}`;
+    `http://localhost:3000/menu/${restaurantSlug}/table/${tableNumber}`;
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="mx-auto max-w-md rounded-2xl bg-white p-8 text-center shadow-sm">
         <h1 className="text-3xl font-bold">
-          Mark's Restaurant
+          Restaurant QR Code
         </h1>
 
         <p className="mt-2 text-gray-500">
