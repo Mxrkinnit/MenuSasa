@@ -13,7 +13,7 @@ export default async function TableQRPage({
   const { restaurantSlug, tableNumber } = await params;
 
   const menuUrl =
-    `http://localhost:3000/menu/${restaurantSlug}/table/${tableNumber}`;
+  `${process.env.NEXT_PUBLIC_APP_URL}/menu/${restaurantSlug}/table/${tableNumber}`;
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">

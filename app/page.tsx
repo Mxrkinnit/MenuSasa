@@ -76,6 +76,7 @@ export default async function Home() {
   categories={typedCategories}
   restaurantId={restaurant.id}
   tableId=""
+  tableNumber=""
 />
       </div>
     </main>

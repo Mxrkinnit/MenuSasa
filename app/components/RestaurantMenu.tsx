@@ -30,6 +30,17 @@ type RestaurantMenuProps = {
   tableNumber: string;
 };
 
+function generateUUID() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+    /[xy]/g,
+    (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    }
+  );
+}
+
 export default function RestaurantMenu({
   categories,
   restaurantId,
@@ -104,7 +115,7 @@ export default function RestaurantMenu({
       0
     );
 
-    const orderId = crypto.randomUUID();
+  const orderId = generateUUID();
 
 const { error: orderError } = await supabase
   .from("orders")
