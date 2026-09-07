@@ -62,8 +62,8 @@ export default function Cart({
         </div>
 
         <div className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium">
-          KSh {total.toFixed(2)}
-        </div>
+  {itemCount} {itemCount === 1 ? "item" : "items"}
+</div>
       </div>
 
       <div className="divide-y">

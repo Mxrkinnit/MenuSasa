@@ -121,6 +121,7 @@ export default async function TableMenuPage({
   categories={typedCategories}
   restaurantId={restaurant.id}
   tableId={table.id}
+  tableNumber={tableNumber}
 />
       </div>
     </main>

@@ -27,12 +27,14 @@ type RestaurantMenuProps = {
   categories: Category[];
   restaurantId: string;
   tableId: string;
+  tableNumber: string;
 };
 
 export default function RestaurantMenu({
   categories,
   restaurantId,
   tableId,
+  tableNumber,
 }: RestaurantMenuProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -166,6 +168,8 @@ const { error: orderError } = await supabase
     );
   }
 
+
+
   return (
   <div className="space-y-10">
     {!isCheckingOut ? (
@@ -193,13 +197,25 @@ const { error: orderError } = await supabase
       </>
     ) : (
       <div className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-bold">
-          Review Your Order
-        </h2>
+       <div>
+  <h2 className="text-2xl font-bold">
+    Review Your Order
+  </h2>
 
-        <p className="mt-2 text-gray-500">
-          Please check your order before placing it.
-        </p>
+  <div className="mt-4 rounded-xl bg-gray-100 p-4">
+    <p className="text-sm text-gray-500">
+      Ordering for
+    </p>
+
+    <p className="mt-1 text-lg font-bold">
+  Table {tableNumber}
+</p>
+  </div>
+
+  <p className="mt-4 text-gray-500">
+    Please check your order before placing it.
+  </p>
+</div>
 
         <div className="mt-6 space-y-4">
           {cart.map((item) => (
