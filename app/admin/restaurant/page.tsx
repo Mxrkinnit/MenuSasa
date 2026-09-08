@@ -38,6 +38,14 @@ export default function RestaurantAdminPage() {
   const [name, setName] = useState("");
   const [newCategory, setNewCategory] = useState("");
 
+  const [newItemName, setNewItemName] = useState("");
+const [newItemDescription, setNewItemDescription] = useState("");
+const [newItemPrice, setNewItemPrice] = useState("");
+const [newItemCategoryId, setNewItemCategoryId] = useState("");
+const [newItemImageUrl, setNewItemImageUrl] = useState("");
+const [newItemAvailable, setNewItemAvailable] = useState(true);
+const [addingItem, setAddingItem] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [addingCategory, setAddingCategory] = useState(false);
@@ -235,31 +243,88 @@ if (menuItemError) {
   }
 
   async function deleteCategory(categoryId: string) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this category?"
-    );
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this category?"
+  );
 
-    if (!confirmed) return;
+  if (!confirmed) return;
 
-    setMessage("");
-    setError("");
+  setMessage("");
+  setError("");
 
-    const { error } = await supabase
-      .from("menu_categories")
-      .delete()
-      .eq("id", categoryId);
+  const { error } = await supabase
+    .from("menu_categories")
+    .delete()
+    .eq("id", categoryId);
 
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    setCategories((current) =>
-      current.filter((category) => category.id !== categoryId)
-    );
-
-    setMessage("Category deleted successfully.");
+  if (error) {
+    setError(error.message);
+    return;
   }
+
+  setCategories((current) =>
+    current.filter((category) => category.id !== categoryId)
+  );
+
+  setMessage("Category deleted successfully.");
+}
+
+async function addMenuItem() {
+  if (!restaurant) return;
+
+  if (!newItemName.trim()) {
+    setError("Menu item name cannot be empty.");
+    return;
+  }
+
+  if (!newItemCategoryId) {
+    setError("Please select a category.");
+    return;
+  }
+
+  const price = Number(newItemPrice);
+
+  if (!newItemPrice || Number.isNaN(price) || price < 0) {
+    setError("Please enter a valid price.");
+    return;
+  }
+
+  setAddingItem(true);
+  setMessage("");
+  setError("");
+
+  const { data, error } = await supabase
+    .from("menu_items")
+    .insert({
+      restaurant_id: restaurant.id,
+      category_id: newItemCategoryId,
+      name: newItemName.trim(),
+      description: newItemDescription.trim() || null,
+      price,
+      image_url: newItemImageUrl.trim() || null,
+      available: newItemAvailable,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    setError(error.message);
+    setAddingItem(false);
+    return;
+  }
+
+  setMenuItems((current) => [...current, data]);
+
+  setNewItemName("");
+  setNewItemDescription("");
+  setNewItemPrice("");
+  setNewItemCategoryId("");
+  setNewItemImageUrl("");
+  setNewItemAvailable(true);
+
+  setMessage("Menu item added successfully.");
+  setAddingItem(false);
+}
 
   if (loading) {
     return (
@@ -457,10 +522,134 @@ if (menuItemError) {
   </h2>
 
   <p className="mt-1 text-sm text-gray-500">
-    Manage the items that appear on your restaurant menu.
-  </p>
+  Manage the items that appear on your restaurant menu.
+</p>
 
-  <div className="mt-6 divide-y rounded-xl border">
+<div className="mt-6 rounded-xl border p-5">
+  <h3 className="font-semibold">
+    Add Menu Item
+  </h3>
+
+  <div className="mt-4 space-y-4">
+    <div>
+      <label className="block text-sm font-medium text-gray-700">
+        Name
+      </label>
+
+      <input
+        type="text"
+        value={newItemName}
+        onChange={(event) =>
+          setNewItemName(event.target.value)
+        }
+        placeholder="e.g. Chicken Burger"
+        className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+      />
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium text-gray-700">
+        Description
+      </label>
+
+      <textarea
+        value={newItemDescription}
+        onChange={(event) =>
+          setNewItemDescription(event.target.value)
+        }
+        placeholder="Describe the menu item..."
+        rows={3}
+        className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+      />
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium text-gray-700">
+        Price (KSh)
+      </label>
+
+      <input
+        type="number"
+        min="0"
+        step="0.01"
+        value={newItemPrice}
+        onChange={(event) =>
+          setNewItemPrice(event.target.value)
+        }
+        placeholder="e.g. 650"
+        className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+      />
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium text-gray-700">
+        Category
+      </label>
+
+      <select
+        value={newItemCategoryId}
+        onChange={(event) =>
+          setNewItemCategoryId(event.target.value)
+        }
+        className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-black"
+      >
+        <option value="">
+          Select a category
+        </option>
+
+        {categories.map((category) => (
+          <option
+            key={category.id}
+            value={category.id}
+          >
+            {category.name}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium text-gray-700">
+        Image URL
+      </label>
+
+      <input
+        type="url"
+        value={newItemImageUrl}
+        onChange={(event) =>
+          setNewItemImageUrl(event.target.value)
+        }
+        placeholder="https://example.com/image.jpg"
+        className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+      />
+    </div>
+
+    <label className="flex items-center gap-3">
+      <input
+        type="checkbox"
+        checked={newItemAvailable}
+        onChange={(event) =>
+          setNewItemAvailable(event.target.checked)
+        }
+        className="h-4 w-4"
+      />
+
+      <span className="text-sm font-medium text-gray-700">
+        Available
+      </span>
+    </label>
+
+    <button
+      onClick={addMenuItem}
+      disabled={addingItem}
+      className="w-full rounded-lg bg-black px-4 py-3 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98] disabled:opacity-50"
+    >
+      {addingItem ? "Adding..." : "Add Menu Item"}
+    </button>
+  </div>
+</div>
+
+<div className="mt-6 divide-y rounded-xl border">
     {menuItems.length === 0 ? (
       <p className="p-5 text-sm text-gray-500">
         No menu items yet.
