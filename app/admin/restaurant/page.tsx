@@ -46,6 +46,15 @@ const [newItemImageUrl, setNewItemImageUrl] = useState("");
 const [newItemAvailable, setNewItemAvailable] = useState(true);
 const [addingItem, setAddingItem] = useState(false);
 
+const [editingItemId, setEditingItemId] = useState<string | null>(null);
+const [editingItemName, setEditingItemName] = useState("");
+const [editingItemDescription, setEditingItemDescription] = useState("");
+const [editingItemPrice, setEditingItemPrice] = useState("");
+const [editingItemCategoryId, setEditingItemCategoryId] = useState("");
+const [editingItemImageUrl, setEditingItemImageUrl] = useState("");
+const [editingItemAvailable, setEditingItemAvailable] = useState(true);
+const [savingItem, setSavingItem] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [addingCategory, setAddingCategory] = useState(false);
@@ -325,6 +334,127 @@ async function addMenuItem() {
   setMessage("Menu item added successfully.");
   setAddingItem(false);
 }
+
+function startEditingItem(item: MenuItem) {
+  setEditingItemId(item.id);
+  setEditingItemName(item.name);
+  setEditingItemDescription(item.description || "");
+  setEditingItemPrice(String(item.price));
+  setEditingItemCategoryId(item.category_id);
+  setEditingItemImageUrl(item.image_url || "");
+  setEditingItemAvailable(item.available);
+
+  setMessage("");
+  setError("");
+}
+
+function cancelEditingItem() {
+  setEditingItemId(null);
+  setEditingItemName("");
+  setEditingItemDescription("");
+  setEditingItemPrice("");
+  setEditingItemCategoryId("");
+  setEditingItemImageUrl("");
+  setEditingItemAvailable(true);
+}
+
+async function saveMenuItem(itemId: string) {
+  if (!editingItemName.trim()) {
+    setError("Menu item name cannot be empty.");
+    return;
+  }
+
+  if (!editingItemCategoryId) {
+    setError("Please select a category.");
+    return;
+  }
+
+  const price = Number(editingItemPrice);
+
+  if (
+    !editingItemPrice ||
+    Number.isNaN(price) ||
+    price < 0
+  ) {
+    setError("Please enter a valid price.");
+    return;
+  }
+
+  setSavingItem(true);
+  setMessage("");
+  setError("");
+
+  const { error } = await supabase
+    .from("menu_items")
+    .update({
+      name: editingItemName.trim(),
+      description:
+        editingItemDescription.trim() || null,
+      price,
+      category_id: editingItemCategoryId,
+      image_url:
+        editingItemImageUrl.trim() || null,
+      available: editingItemAvailable,
+    })
+    .eq("id", itemId);
+
+  if (error) {
+    setError(error.message);
+    setSavingItem(false);
+    return;
+  }
+
+  setMenuItems((current) =>
+    current.map((item) =>
+      item.id === itemId
+        ? {
+            ...item,
+            name: editingItemName.trim(),
+            description:
+              editingItemDescription.trim() || null,
+            price,
+            category_id: editingItemCategoryId,
+            image_url:
+              editingItemImageUrl.trim() || null,
+            available: editingItemAvailable,
+          }
+        : item
+    )
+  );
+
+  cancelEditingItem();
+
+  setMessage("Menu item updated successfully.");
+  setSavingItem(false);
+}
+
+async function deleteMenuItem(itemId: string) {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this menu item?"
+  );
+
+  if (!confirmed) return;
+
+  setMessage("");
+  setError("");
+
+  const { error } = await supabase
+    .from("menu_items")
+    .delete()
+    .eq("id", itemId);
+
+  if (error) {
+    setError(error.message);
+    return;
+  }
+
+  setMenuItems((current) =>
+    current.filter((item) => item.id !== itemId)
+  );
+
+  setMessage("Menu item deleted successfully.");
+}
+
 
   if (loading) {
     return (
@@ -661,46 +791,195 @@ async function addMenuItem() {
         );
 
         return (
-          <div
-            key={item.id}
-            className="p-5"
+  <div
+    key={item.id}
+    className="p-5"
+  >
+    {editingItemId === item.id ? (
+      <div className="space-y-4">
+        <h3 className="font-semibold">
+          Edit Menu Item
+        </h3>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Name
+          </label>
+
+          <input
+            type="text"
+            value={editingItemName}
+            onChange={(event) =>
+              setEditingItemName(event.target.value)
+            }
+            className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Description
+          </label>
+
+          <textarea
+            value={editingItemDescription}
+            onChange={(event) =>
+              setEditingItemDescription(event.target.value)
+            }
+            rows={3}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Price (KSh)
+          </label>
+
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={editingItemPrice}
+            onChange={(event) =>
+              setEditingItemPrice(event.target.value)
+            }
+            className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Category
+          </label>
+
+          <select
+            value={editingItemCategoryId}
+            onChange={(event) =>
+              setEditingItemCategoryId(event.target.value)
+            }
+            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-black"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="font-semibold">
-                  {item.name}
-                </h3>
+            <option value="">
+              Select a category
+            </option>
 
-                {item.description && (
-                  <p className="mt-1 text-sm text-gray-500">
-                    {item.description}
-                  </p>
-                )}
-
-                <p className="mt-2 text-sm font-medium">
-                  KSh {Number(item.price).toFixed(2)}
-                </p>
-
-                <p className="mt-1 text-xs text-gray-400">
-                  Category:{" "}
-                  {category?.name || "Unknown category"}
-                </p>
-              </div>
-
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  item.available
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-100 text-gray-500"
-                }`}
+            {categories.map((category) => (
+              <option
+                key={category.id}
+                value={category.id}
               >
-                {item.available
-                  ? "Available"
-                  : "Unavailable"}
-              </span>
-            </div>
-          </div>
-        );
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Image URL
+          </label>
+
+          <input
+            type="url"
+            value={editingItemImageUrl}
+            onChange={(event) =>
+              setEditingItemImageUrl(event.target.value)
+            }
+            placeholder="https://example.com/image.jpg"
+            className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+          />
+        </div>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={editingItemAvailable}
+            onChange={(event) =>
+              setEditingItemAvailable(event.target.checked)
+            }
+            className="h-4 w-4"
+          />
+
+          <span className="text-sm font-medium text-gray-700">
+            Available
+          </span>
+        </label>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => saveMenuItem(item.id)}
+            disabled={savingItem}
+            className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {savingItem ? "Saving..." : "Save"}
+          </button>
+
+          <button
+            onClick={cancelEditingItem}
+            disabled={savingItem}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ) : (
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-semibold">
+            {item.name}
+          </h3>
+
+          {item.description && (
+            <p className="mt-1 text-sm text-gray-500">
+              {item.description}
+            </p>
+          )}
+
+          <p className="mt-2 text-sm font-medium">
+            KSh {Number(item.price).toFixed(2)}
+          </p>
+
+          <p className="mt-1 text-xs text-gray-400">
+            Category:{" "}
+            {category?.name || "Unknown category"}
+          </p>
+        </div>
+
+        <div className="flex flex-col items-end gap-2">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              item.available
+                ? "bg-green-100 text-green-700"
+                : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            {item.available
+              ? "Available"
+              : "Unavailable"}
+          </span>
+
+          <button
+            onClick={() => startEditingItem(item)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium transition hover:bg-gray-50"
+          >
+            Edit
+          </button>
+
+          <button
+  onClick={() => deleteMenuItem(item.id)}
+  className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+>
+  Delete
+</button>
+
+
+        </div>
+      </div>
+    )}
+  </div>
+);
       })
     )}
   </div>
