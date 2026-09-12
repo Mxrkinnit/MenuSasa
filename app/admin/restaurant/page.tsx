@@ -455,6 +455,55 @@ async function deleteMenuItem(itemId: string) {
   setMessage("Menu item deleted successfully.");
 }
 
+async function toggleMenuItemAvailability(
+  itemId: string,
+  currentAvailability: boolean
+) {
+  setMessage("");
+  setError("");
+
+  // Update the page immediately
+  setMenuItems((current) =>
+    current.map((item) =>
+      item.id === itemId
+        ? {
+            ...item,
+            available: !currentAvailability,
+          }
+        : item
+    )
+  );
+
+  const { error } = await supabase
+    .from("menu_items")
+    .update({
+      available: !currentAvailability,
+    })
+    .eq("id", itemId);
+
+  if (error) {
+    // If Supabase fails, undo the change
+    setMenuItems((current) =>
+      current.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              available: currentAvailability,
+            }
+          : item
+      )
+    );
+
+    setError(error.message);
+    return;
+  }
+
+  setMessage(
+    `Menu item ${
+      !currentAvailability ? "enabled" : "disabled"
+    } successfully.`
+  );
+}
 
   if (loading) {
     return (
@@ -948,17 +997,18 @@ async function deleteMenuItem(itemId: string) {
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-medium ${
-              item.available
-                ? "bg-green-100 text-green-700"
-                : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            {item.available
-              ? "Available"
-              : "Unavailable"}
-          </span>
+         <button
+  onClick={() =>
+    toggleMenuItemAvailability(item.id, item.available)
+  }
+  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+    item.available
+      ? "bg-green-100 text-green-700 hover:bg-green-200"
+      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+  }`}
+>
+  {item.available ? "Available" : "Unavailable"}
+</button>
 
           <button
             onClick={() => startEditingItem(item)}
