@@ -117,6 +117,13 @@ export default function RestaurantMenu({
 
   const orderId = generateUUID();
 
+  console.log("ORDER DEBUG:", {
+  orderId,
+  restaurantId,
+  tableId,
+  tableNumber,
+});
+
 const { error: orderError } = await supabase
   .from("orders")
   .insert({
