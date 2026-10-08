@@ -121,29 +121,29 @@ export default function RestaurantMenu({
     const orderId = generateUUID();
 
     const { data: table, error: tableError } = await supabase
-  .from("tables")
-  .select("qr_token")
-  .eq("id", tableId)
-  .single();
+      .from("tables")
+      .select("qr_token")
+      .eq("id", tableId)
+      .single();
 
-if (tableError || !table) {
-  setError(
-    tableError?.message || "Could not find table."
-  );
-  setIsSubmitting(false);
-  return;
-}
+    if (tableError || !table) {
+      setError(
+        tableError?.message || "Could not find table."
+      );
+      setIsSubmitting(false);
+      return;
+    }
 
-const { error: orderError } = await supabase
-  .from("orders")
-  .insert({
-    id: orderId,
-    restaurant_id: restaurantId,
-    table_id: tableId,
-    qr_token: table.qr_token,
-    status: "new",
-    total: total,
-  });
+    const { error: orderError } = await supabase
+      .from("orders")
+      .insert({
+        id: orderId,
+        restaurant_id: restaurantId,
+        table_id: tableId,
+        qr_token: table.qr_token,
+        status: "new",
+        total: total,
+      });
 
     if (orderError) {
       setError(
@@ -209,12 +209,23 @@ const { error: orderError } = await supabase
           Table order successfully submitted.
         </p>
 
-        <Link
-          href={`/menu/${restaurantSlug}/orders?table=${tableNumber}`}
-          className="mt-6 inline-block w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98]"
-        >
-          View My Orders
-        </Link>
+        <div className="mt-6 space-y-3">
+  <Link
+    href={`/menu/${restaurantSlug}/orders?table=${tableNumber}`}
+    className="block w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98]"
+  >
+    View My Orders
+  </Link>
+
+  <button
+    onClick={() => {
+      window.location.href = `/menu/${restaurantSlug}/table/${tableNumber}`;
+    }}
+    className="w-full rounded-lg border border-gray-300 px-4 py-4 font-semibold transition-all duration-150 hover:bg-gray-50 active:scale-[0.98]"
+  >
+    Home
+  </button>
+</div>
       </div>
     );
   }

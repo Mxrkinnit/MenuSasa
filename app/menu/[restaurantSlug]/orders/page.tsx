@@ -27,111 +27,89 @@ type PageProps = {
 
 export default function OrdersPage({ params }: PageProps) {
   const [restaurantSlug, setRestaurantSlug] = useState("");
-const [tableNumber, setTableNumber] = useState("");
-const [orders, setOrders] = useState<Order[]>([]);
+  const [tableNumber, setTableNumber] = useState("");
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function loadOrders() {
       try {
-       const { restaurantSlug } = await params;
+        const { restaurantSlug } = await params;
 
-const searchParams = new URLSearchParams(
-  window.location.search
-);
+        const searchParams = new URLSearchParams(
+          window.location.search
+        );
 
-const currentTableNumber =
-  searchParams.get("table") || "";
+        const currentTableNumber =
+          searchParams.get("table") || "";
 
-setRestaurantSlug(restaurantSlug);
-setTableNumber(currentTableNumber);
+        setRestaurantSlug(restaurantSlug);
+        setTableNumber(currentTableNumber);
 
         const storageKey = `menusasa_orders_${restaurantSlug}`;
 
-const storedOrderIds = JSON.parse(
-  localStorage.getItem(storageKey) || "[]"
-) as string[];
+        const storedOrderIds = JSON.parse(
+          localStorage.getItem(storageKey) || "[]"
+        ) as string[];
 
+        const { data: table, error: tableError } = await supabase
+          .from("tables")
+          .select("id, qr_token")
+          .eq("table_number", currentTableNumber)
+          .maybeSingle();
 
+        if (tableError) {
+          setError(tableError.message);
+          setLoading(false);
+          return;
+        }
 
-const { data: table, error: tableError } = await supabase
-  .from("tables")
-  .select("id, qr_token")
-  .eq("table_number", currentTableNumber)
-  .maybeSingle();
+        if (!table) {
+          setError("Table not found.");
+          setLoading(false);
+          return;
+        }
 
-if (tableError) {
-  setError(tableError.message);
-  setLoading(false);
-  return;
-}
+        const tableId = table.id;
 
-if (!table) {
-  setError("Table not found.");
-  setLoading(false);
-  return;
-}
+        if (storedOrderIds.length === 0) {
+          setLoading(false);
+          return;
+        }
 
-const tableId = table.id;
+        const { data, error: ordersError } = await supabase
+          .from("orders")
+          .select(`
+            id,
+            status,
+            total,
+            created_at,
+            table_id,
+            qr_token,
+            order_items (
+              id,
+              item_name,
+              quantity,
+              unit_price,
+              subtotal
+            )
+          `)
+          .in("id", storedOrderIds)
+          .eq("table_id", tableId)
+          .eq("qr_token", table.qr_token)
+          .order("created_at", {
+            ascending: false,
+          });
 
+        if (ordersError) {
+          setError(ordersError.message);
+          setLoading(false);
+          return;
+        }
 
-if (storedOrderIds.length === 0) {
-  console.log("NO SAVED ORDER IDS");
-  setLoading(false);
-  return;
-}
-
-console.log("ORDER ID WE ARE SEARCHING FOR:", storedOrderIds[0]);
-
-const { data: testOrder, error: testError } = await supabase
-  .from("orders")
-  .select("*")
-  .eq("id", storedOrderIds[0])
-  .maybeSingle();
-
-console.log("DIRECT ORDER TEST:", testOrder);
-console.log("DIRECT ORDER ERROR:", testError);
-
-console.log("Restaurant slug:", restaurantSlug);
-console.log("Storage key:", storageKey);
-console.log("Saved order IDs:", storedOrderIds);
-
-const { data, error: ordersError } = await supabase
-  .from("orders")
-  .select(`
-    id,
-    status,
-    total,
-    created_at,
-    table_id,
-    qr_token,
-    order_items (
-      id,
-      item_name,
-      quantity,
-      unit_price,
-      subtotal
-    )
-  `)
-  .in("id", storedOrderIds)
-  .eq("table_id", tableId)
-  .eq("qr_token", table.qr_token)
-  .order("created_at", {
-    ascending: false,
-  });
-
-console.log("Supabase orders data:", data);
-console.log("Supabase orders error:", ordersError);
-
-if (ordersError) {
-  setError(ordersError.message);
-  setLoading(false);
-  return;
-}
-
-setOrders((data as Order[]) || []);
-setLoading(false);
+        setOrders((data as Order[]) || []);
+        setLoading(false);
       } catch (err) {
         setError(
           err instanceof Error
@@ -165,9 +143,18 @@ setLoading(false);
   return (
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-2xl">
-        <h1 className="text-3xl font-bold">
-          My Orders
-        </h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-3xl font-bold">
+            My Orders
+          </h1>
+
+          <a
+            href={`/menu/${restaurantSlug}/table/${tableNumber}`}
+            className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-80"
+          >
+            Home
+          </a>
+        </div>
 
         {error && (
           <div className="mt-6 rounded-lg bg-red-50 p-4 text-sm text-red-600">
