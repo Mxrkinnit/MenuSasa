@@ -120,6 +120,7 @@ export default async function TableMenuPage({
         <RestaurantMenu
   categories={typedCategories}
   restaurantId={restaurant.id}
+  restaurantSlug={restaurantSlug}
   tableId={table.id}
   tableNumber={tableNumber}
 />

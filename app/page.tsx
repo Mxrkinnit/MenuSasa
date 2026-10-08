@@ -75,6 +75,7 @@ export default async function Home() {
         <RestaurantMenu
   categories={typedCategories}
   restaurantId={restaurant.id}
+  restaurantSlug="marks-restaurant"
   tableId=""
   tableNumber=""
 />

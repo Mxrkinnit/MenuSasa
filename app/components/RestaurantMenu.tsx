@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Menu from "./Menu";
 import Cart from "./Cart";
 import { supabase } from "@/lib/supabase";
@@ -26,6 +27,7 @@ type CartItem = MenuItem & {
 type RestaurantMenuProps = {
   categories: Category[];
   restaurantId: string;
+  restaurantSlug: string;
   tableId: string;
   tableNumber: string;
 };
@@ -44,6 +46,7 @@ function generateUUID() {
 export default function RestaurantMenu({
   categories,
   restaurantId,
+  restaurantSlug,
   tableId,
   tableNumber,
 }: RestaurantMenuProps) {
@@ -115,14 +118,21 @@ export default function RestaurantMenu({
       0
     );
 
-  const orderId = generateUUID();
+    const orderId = generateUUID();
 
-  console.log("ORDER DEBUG:", {
-  orderId,
-  restaurantId,
-  tableId,
-  tableNumber,
-});
+    const { data: table, error: tableError } = await supabase
+  .from("tables")
+  .select("qr_token")
+  .eq("id", tableId)
+  .single();
+
+if (tableError || !table) {
+  setError(
+    tableError?.message || "Could not find table."
+  );
+  setIsSubmitting(false);
+  return;
+}
 
 const { error: orderError } = await supabase
   .from("orders")
@@ -130,13 +140,14 @@ const { error: orderError } = await supabase
     id: orderId,
     restaurant_id: restaurantId,
     table_id: tableId,
+    qr_token: table.qr_token,
     status: "new",
     total: total,
   });
 
     if (orderError) {
       setError(
-        orderError?.message || "Could not create order."
+        orderError.message || "Could not create order."
       );
       setIsSubmitting(false);
       return;
@@ -161,6 +172,21 @@ const { error: orderError } = await supabase
       return;
     }
 
+    const storageKey = `menusasa_orders_${restaurantSlug}`;
+
+    const existingOrders = JSON.parse(
+      localStorage.getItem(storageKey) || "[]"
+    ) as string[];
+
+    if (!existingOrders.includes(orderId)) {
+      existingOrders.push(orderId);
+    }
+
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify(existingOrders)
+    );
+
     setCart([]);
     setOrderSubmitted(true);
     setIsSubmitting(false);
@@ -182,126 +208,139 @@ const { error: orderError } = await supabase
         <p className="mt-4 text-sm text-gray-400">
           Table order successfully submitted.
         </p>
+
+        <Link
+          href={`/menu/${restaurantSlug}/orders?table=${tableNumber}`}
+          className="mt-6 inline-block w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98]"
+        >
+          View My Orders
+        </Link>
       </div>
     );
   }
 
-
-
   return (
-  <div className="space-y-10">
-    {!isCheckingOut ? (
-      <>
-        <Menu
-          categories={categories}
-          onAddToCart={addToCart}
-        />
+    <div className="space-y-10">
+      <Link
+        href={`/menu/${restaurantSlug}/orders?table=${tableNumber}`}
+        className="inline-block rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50"
+      >
+        My Orders
+      </Link>
 
-        <Cart
-          cart={cart}
-          onIncrease={increaseQuantity}
-          onDecrease={decreaseQuantity}
-          onRemove={removeFromCart}
-        />
+      {!isCheckingOut ? (
+        <>
+          <Menu
+            categories={categories}
+            onAddToCart={addToCart}
+          />
 
-        {cart.length > 0 && (
-          <button
-            onClick={() => setIsCheckingOut(true)}
-            className="w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98]"
-          >
-            Checkout
-          </button>
-        )}
-      </>
-    ) : (
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-       <div>
-  <h2 className="text-2xl font-bold">
-    Review Your Order
-  </h2>
+          <Cart
+            cart={cart}
+            onIncrease={increaseQuantity}
+            onDecrease={decreaseQuantity}
+            onRemove={removeFromCart}
+          />
 
-  <div className="mt-4 rounded-xl bg-gray-100 p-4">
-    <p className="text-sm text-gray-500">
-      Ordering for
-    </p>
-
-    <p className="mt-1 text-lg font-bold">
-  Table {tableNumber}
-</p>
-  </div>
-
-  <p className="mt-4 text-gray-500">
-    Please check your order before placing it.
-  </p>
-</div>
-
-        <div className="mt-6 space-y-4">
-          {cart.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between border-b pb-4"
+          {cart.length > 0 && (
+            <button
+              onClick={() => setIsCheckingOut(true)}
+              className="w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98]"
             >
-              <div>
-                <p className="font-semibold">
-                  {item.name}
-                </p>
+              Checkout
+            </button>
+          )}
+        </>
+      ) : (
+        <div className="rounded-xl bg-white p-6 shadow-sm">
+          <div>
+            <h2 className="text-2xl font-bold">
+              Review Your Order
+            </h2>
 
-                <p className="text-sm text-gray-500">
-                  KSh {item.price} × {item.quantity}
-                </p>
-              </div>
+            <div className="mt-4 rounded-xl bg-gray-100 p-4">
+              <p className="text-sm text-gray-500">
+                Ordering for
+              </p>
 
-              <p className="font-semibold">
-                KSh {(item.price * item.quantity).toFixed(2)}
+              <p className="mt-1 text-lg font-bold">
+                Table {tableNumber}
               </p>
             </div>
-          ))}
+
+            <p className="mt-4 text-gray-500">
+              Please check your order before placing it.
+            </p>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {cart.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between border-b pb-4"
+              >
+                <div>
+                  <p className="font-semibold">
+                    {item.name}
+                  </p>
+
+                  <p className="text-sm text-gray-500">
+                    KSh {item.price} × {item.quantity}
+                  </p>
+                </div>
+
+                <p className="font-semibold">
+                  KSh{" "}
+                  {(item.price * item.quantity).toFixed(2)}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 flex items-center justify-between border-t pt-5">
+            <span className="text-lg font-bold">
+              Total
+            </span>
+
+            <span className="text-xl font-bold">
+              KSh{" "}
+              {cart
+                .reduce(
+                  (sum, item) =>
+                    sum + item.price * item.quantity,
+                  0
+                )
+                .toFixed(2)}
+            </span>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <button
+              onClick={placeOrder}
+              disabled={isSubmitting}
+              className="w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98] disabled:opacity-50"
+            >
+              {isSubmitting
+                ? "Placing Order..."
+                : "Place Order"}
+            </button>
+
+            <button
+              onClick={() => setIsCheckingOut(false)}
+              disabled={isSubmitting}
+              className="w-full rounded-lg border border-gray-300 px-4 py-4 font-semibold transition-all duration-150 hover:bg-gray-50 active:scale-[0.98]"
+            >
+              Back to Menu
+            </button>
+          </div>
         </div>
+      )}
 
-        <div className="mt-6 flex items-center justify-between border-t pt-5">
-          <span className="text-lg font-bold">
-            Total
-          </span>
-
-          <span className="text-xl font-bold">
-            KSh{" "}
-            {cart
-              .reduce(
-                (sum, item) =>
-                  sum + item.price * item.quantity,
-                0
-              )
-              .toFixed(2)}
-          </span>
+      {error && (
+        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
+          {error}
         </div>
-
-        <div className="mt-6 space-y-3">
-          <button
-            onClick={placeOrder}
-            disabled={isSubmitting}
-            className="w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98] disabled:opacity-50"
-          >
-            {isSubmitting
-              ? "Placing Order..."
-              : "Place Order"}
-          </button>
-
-          <button
-            onClick={() => setIsCheckingOut(false)}
-            disabled={isSubmitting}
-            className="w-full rounded-lg border border-gray-300 px-4 py-4 font-semibold transition-all duration-150 hover:bg-gray-50 active:scale-[0.98]"
-          >
-            Back to Menu
-          </button>
-        </div>
-      </div>
-    )}
-
-    {error && (
-      <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
-        {error}
-      </div>
-    )}
-  </div>
-);
+      )}
+    </div>
+  );
 }
