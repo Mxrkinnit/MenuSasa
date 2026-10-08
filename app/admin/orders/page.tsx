@@ -1,4 +1,15 @@
 import { supabase } from "@/lib/supabase";
+import OrderStatusButton from "./OrderStatusButton";
+
+type OrderItem = {
+  id: string;
+  order_id: string;
+  menu_item_id: string;
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+};
 
 type Order = {
   id: string;
@@ -7,6 +18,10 @@ type Order = {
   status: string;
   total: number;
   created_at: string;
+  tables: {
+    table_number: number;
+  } | null;
+  order_items: OrderItem[];
 };
 
 export default async function CustomerOrdersPage() {
@@ -36,7 +51,21 @@ export default async function CustomerOrdersPage() {
 const { data: orders, error: ordersError } =
   await supabase
     .from("orders")
-    .select("*")
+    .select(`
+      *,
+      tables (
+        table_number
+      ),
+      order_items (
+        id,
+        order_id,
+        menu_item_id,
+        item_name,
+        quantity,
+        unit_price,
+        subtotal
+      )
+    `)
     .order("created_at", {
       ascending: false,
     });
@@ -80,35 +109,70 @@ const { data: orders, error: ordersError } =
           ) : (
             orders?.map((order: Order) => (
               <div
-                key={order.id}
-                className="rounded-xl bg-white p-6 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-lg font-bold">
-                      Order
-                    </p>
+  key={order.id}
+  className="rounded-xl bg-white p-6 shadow-sm"
+>
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <p className="text-xl font-bold">
+        Table {order.tables?.table_number ?? "Unknown"}
+      </p>
 
-                    <p className="mt-1 break-all text-sm text-gray-400">
-                      {order.id}
-                    </p>
-                  </div>
+      <p className="mt-1 break-all text-xs text-gray-400">
+        Order ID: {order.id}
+      </p>
+    </div>
 
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium capitalize">
-                    {order.status}
-                  </span>
-                </div>
+    <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium capitalize">
+      {order.status}
+    </span>
+  </div>
 
-                <div className="mt-5 border-t pt-4">
-                  <p className="text-sm text-gray-500">
-                    Total
-                  </p>
+  <div className="mt-5 border-t pt-4">
+    <h3 className="font-semibold">
+      Items
+    </h3>
 
-                  <p className="mt-1 text-xl font-bold">
-                    KSh {Number(order.total).toFixed(2)}
-                  </p>
-                </div>
-              </div>
+    <div className="mt-3 space-y-3">
+      {order.order_items.map((item) => (
+        <div
+          key={item.id}
+          className="flex items-center justify-between"
+        >
+          <div>
+            <p className="font-medium">
+              {item.item_name}
+            </p>
+
+            <p className="text-sm text-gray-500">
+              KSh {Number(item.unit_price).toFixed(2)} ×{" "}
+              {item.quantity}
+            </p>
+          </div>
+
+          <p className="font-semibold">
+            KSh {Number(item.subtotal).toFixed(2)}
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <div className="mt-5 flex items-center justify-between border-t pt-4">
+    <span className="text-lg font-bold">
+      Total
+    </span>
+
+    <span className="text-xl font-bold">
+      KSh {Number(order.total).toFixed(2)}
+    </span>
+  </div>
+
+  <OrderStatusButton
+  orderId={order.id}
+  currentStatus={order.status}
+/>
+</div>
             ))
           )}
         </div>
