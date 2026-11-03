@@ -51,12 +51,22 @@ export default function AdminOrdersPage() {
     setError("");
 
     try {
-      const { data: restaurant, error: restaurantError } =
-        await supabase
-          .from("restaurants")
-          .select("id, name")
-          .eq("slug", "marks-restaurant")
-          .single();
+      const {
+  data: { user },
+  error: userError,
+} = await supabase.auth.getUser();
+console.log("Logged-in user ID:", user?.id);
+
+if (userError || !user) {
+  throw new Error("Please log in to view your orders.");
+}
+
+const { data: restaurant, error: restaurantError } =
+  await supabase
+    .from("restaurants")
+    .select("id, name")
+    .eq("owner_id", user.id)
+    .single();
 
       if (restaurantError || !restaurant) {
         throw new Error(
@@ -211,7 +221,7 @@ export default function AdminOrdersPage() {
           <div>
             <h1 className="text-3xl font-bold">Admin Orders</h1>
             <p className="mt-2 text-gray-500">
-              Manage incoming orders for Marks Restaurant.
+              Manage incoming orders for your restaurant.
             </p>
           </div>
 

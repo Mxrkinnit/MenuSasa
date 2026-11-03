@@ -70,11 +70,22 @@ const [savingItem, setSavingItem] = useState(false);
 
   useEffect(() => {
     async function loadRestaurant() {
-      const { data: restaurantData, error: restaurantError } = await supabase
-        .from("restaurants")
-        .select("*")
-        .eq("slug", "marks-restaurant")
-        .single();
+      const {
+  data: { user },
+  error: userError,
+} = await supabase.auth.getUser();
+
+if (userError || !user) {
+  setError("Please log in to manage your restaurant.");
+  setLoading(false);
+  return;
+}
+
+const { data: restaurantData, error: restaurantError } = await supabase
+  .from("restaurants")
+  .select("*")
+  .eq("owner_id", user.id)
+  .single();
 
       if (restaurantError || !restaurantData) {
         setError(

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -47,60 +48,72 @@ export default function OrdersPage({ params }: PageProps) {
         setRestaurantSlug(restaurantSlug);
         setTableNumber(currentTableNumber);
 
+        if (!currentTableNumber) {
+          setError("Table number is missing.");
+          setLoading(false);
+          return;
+        }
+
         const storageKey = `menusasa_orders_${restaurantSlug}`;
 
         const storedOrderIds = JSON.parse(
           localStorage.getItem(storageKey) || "[]"
         ) as string[];
 
-        const { data: table, error: tableError } = await supabase
-          .from("tables")
-          .select("id, qr_token")
-          .eq("table_number", currentTableNumber)
-          .maybeSingle();
+        // Find the restaurant using its URL slug.
+        const { data: restaurant, error: restaurantError } =
+          await supabase
+            .from("restaurants")
+            .select("id")
+            .eq("slug", restaurantSlug)
+            .single();
 
-        if (tableError) {
-          setError(tableError.message);
+        if (restaurantError || !restaurant) {
+          setError("Restaurant not found.");
           setLoading(false);
           return;
         }
 
-        if (!table) {
-          setError("Table not found.");
-          setLoading(false);
-          return;
-        }
+        // Find the table within that restaurant.
+        // Validate the table using its QR token.
+const qrToken = searchParams.get("token") || "";
 
-        const tableId = table.id;
+if (!qrToken || qrToken.length > 100) {
+  setError("Invalid QR code.");
+  setLoading(false);
+  return;
+}
 
+const { data: tables, error: tableError } = await supabase.rpc(
+  "get_public_table",
+  {
+    p_restaurant_id: restaurant.id,
+    p_table_number: Number(currentTableNumber),
+    p_qr_token: qrToken,
+  }
+);
+
+const table = tables?.[0];
+
+if (tableError || !table) {
+  setError("Invalid table QR code.");
+  setLoading(false);
+  return;
+}
         if (storedOrderIds.length === 0) {
           setLoading(false);
           return;
         }
 
-        const { data, error: ordersError } = await supabase
-          .from("orders")
-          .select(`
-            id,
-            status,
-            total,
-            created_at,
-            table_id,
-            qr_token,
-            order_items (
-              id,
-              item_name,
-              quantity,
-              unit_price,
-              subtotal
-            )
-          `)
-          .in("id", storedOrderIds)
-          .eq("table_id", tableId)
-          .eq("qr_token", table.qr_token)
-          .order("created_at", {
-            ascending: false,
-          });
+        // Retrieve only this table's locally recorded orders.
+        const { data, error: ordersError } = await supabase.rpc(
+          "get_customer_orders",
+          {
+            p_table_id: table.id,
+            p_qr_token: qrToken,
+            p_order_ids: storedOrderIds,
+          }
+        );
 
         if (ordersError) {
           setError(ordersError.message);
@@ -109,14 +122,13 @@ export default function OrdersPage({ params }: PageProps) {
         }
 
         setOrders((data as Order[]) || []);
-        setLoading(false);
       } catch (err) {
         setError(
           err instanceof Error
             ? err.message
             : "Could not load orders."
         );
-
+      } finally {
         setLoading(false);
       }
     }
@@ -128,10 +140,7 @@ export default function OrdersPage({ params }: PageProps) {
     return (
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="mx-auto max-w-2xl">
-          <h1 className="text-3xl font-bold">
-            My Orders
-          </h1>
-
+          <h1 className="text-3xl font-bold">My Orders</h1>
           <p className="mt-4 text-gray-500">
             Loading your orders...
           </p>
@@ -144,12 +153,14 @@ export default function OrdersPage({ params }: PageProps) {
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-2xl">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold">
-            My Orders
-          </h1>
+          <h1 className="text-3xl font-bold">My Orders</h1>
 
           <a
-            href={`/menu/${restaurantSlug}/table/${tableNumber}`}
+            href={`/menu/${restaurantSlug}/table/${tableNumber}?token=${encodeURIComponent(
+  new URLSearchParams(
+    typeof window !== "undefined" ? window.location.search : ""
+  ).get("token") || ""
+)}`}
             className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-80"
           >
             Home
@@ -164,9 +175,7 @@ export default function OrdersPage({ params }: PageProps) {
 
         {!error && orders.length === 0 && (
           <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
-            <p className="text-gray-500">
-              No orders found.
-            </p>
+            <p className="text-gray-500">No orders found.</p>
           </div>
         )}
 
@@ -178,10 +187,7 @@ export default function OrdersPage({ params }: PageProps) {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">
-                    Order
-                  </p>
-
+                  <p className="text-sm text-gray-500">Order</p>
                   <p className="mt-1 font-mono text-sm">
                     #{order.id.slice(0, 8)}
                   </p>
@@ -193,7 +199,7 @@ export default function OrdersPage({ params }: PageProps) {
               </div>
 
               <div className="mt-6 space-y-4">
-                {order.order_items.map((item) => (
+                {(order.order_items || []).map((item) => (
                   <div
                     key={item.id}
                     className="flex items-center justify-between border-b pb-3"
@@ -202,27 +208,22 @@ export default function OrdersPage({ params }: PageProps) {
                       <p className="font-semibold">
                         {item.item_name}
                       </p>
-
                       <p className="text-sm text-gray-500">
-                        {item.quantity} × KSh{" "}
-                        {item.unit_price}
+                        {item.quantity} × KSh {item.unit_price}
                       </p>
                     </div>
 
                     <p className="font-semibold">
-                      KSh {item.subtotal.toFixed(2)}
+                      KSh {Number(item.subtotal).toFixed(2)}
                     </p>
                   </div>
                 ))}
               </div>
 
               <div className="mt-5 flex items-center justify-between border-t pt-4">
-                <span className="text-lg font-bold">
-                  Total
-                </span>
-
+                <span className="text-lg font-bold">Total</span>
                 <span className="text-xl font-bold">
-                  KSh {order.total.toFixed(2)}
+                  KSh {Number(order.total).toFixed(2)}
                 </span>
               </div>
 

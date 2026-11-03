@@ -21,16 +21,24 @@ type PageProps = {
     restaurantSlug: string;
     tableNumber: string;
   }>;
+  searchParams: Promise<{
+    token?: string;
+  }>;
 };
 
 export default async function TableMenuPage({
   params,
+  searchParams,
 }: PageProps) {
   const { restaurantSlug, tableNumber } = await params;
+  const { token } = await searchParams;
 
   const tableNumberInt = Number(tableNumber);
 
-  if (Number.isNaN(tableNumberInt)) {
+  if (
+    !Number.isInteger(tableNumberInt) ||
+    tableNumberInt < 1
+  ) {
     return (
       <main className="p-8">
         <h1 className="text-2xl font-bold">
@@ -40,10 +48,24 @@ export default async function TableMenuPage({
     );
   }
 
+  if (!token || token.length > 100) {
+    return (
+      <main className="p-8">
+        <h1 className="text-2xl font-bold">
+          Invalid QR code
+        </h1>
+
+        <p className="mt-2 text-gray-500">
+          Please scan the QR code on your table.
+        </p>
+      </main>
+    );
+  }
+
   const { data: restaurant, error: restaurantError } =
     await supabase
       .from("restaurants")
-      .select("*")
+      .select("id, name")
       .eq("slug", restaurantSlug)
       .single();
 
@@ -57,19 +79,25 @@ export default async function TableMenuPage({
     );
   }
 
-  const { data: table, error: tableError } = await supabase
-    .from("tables")
-    .select("*")
-    .eq("restaurant_id", restaurant.id)
-    .eq("table_number", tableNumberInt)
-    .single();
+  const { data: tables, error: tableError } =
+    await supabase.rpc("get_public_table", {
+      p_restaurant_id: restaurant.id,
+      p_table_number: tableNumberInt,
+      p_qr_token: token,
+    });
+
+  const table = tables?.[0];
 
   if (tableError || !table) {
     return (
       <main className="p-8">
         <h1 className="text-2xl font-bold">
-          Table not found
+          Invalid table QR code
         </h1>
+
+        <p className="mt-2 text-gray-500">
+          Please scan the correct QR code for your table.
+        </p>
       </main>
     );
   }
@@ -123,6 +151,7 @@ export default async function TableMenuPage({
   restaurantSlug={restaurantSlug}
   tableId={table.id}
   tableNumber={tableNumber}
+  qrToken={token}
 />
       </div>
     </main>

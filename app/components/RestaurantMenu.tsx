@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -30,18 +31,8 @@ type RestaurantMenuProps = {
   restaurantSlug: string;
   tableId: string;
   tableNumber: string;
+  qrToken: string;
 };
-
-function generateUUID() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-    /[xy]/g,
-    (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    }
-  );
-}
 
 export default function RestaurantMenu({
   categories,
@@ -49,6 +40,7 @@ export default function RestaurantMenu({
   restaurantSlug,
   tableId,
   tableNumber,
+  qrToken,
 }: RestaurantMenuProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,90 +98,59 @@ export default function RestaurantMenu({
   }
 
   async function placeOrder() {
-    if (cart.length === 0) {
+    if (cart.length === 0 || isSubmitting) {
       return;
     }
 
     setIsSubmitting(true);
     setError("");
 
-    const total = cart.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
+    try {
+      const { data: orderId, error: orderError } =
+        await supabase.rpc("create_customer_order", {
+          p_restaurant_id: restaurantId,
+          p_table_id: tableId,
+          p_qr_token: qrToken,
+          p_items: cart.map((item) => ({
+            menu_item_id: item.id,
+            quantity: item.quantity,
+          })),
+        });
 
-    const orderId = generateUUID();
+      if (orderError) {
+        throw new Error(orderError.message);
+      }
 
-    const { data: table, error: tableError } = await supabase
-      .from("tables")
-      .select("qr_token")
-      .eq("id", tableId)
-      .single();
+      if (!orderId) {
+        throw new Error("The order could not be created.");
+      }
 
-    if (tableError || !table) {
-      setError(
-        tableError?.message || "Could not find table."
+      const storageKey = `menusasa_orders_${restaurantSlug}`;
+
+      const existingOrders = JSON.parse(
+        localStorage.getItem(storageKey) || "[]"
+      ) as string[];
+
+      if (!existingOrders.includes(orderId)) {
+        existingOrders.push(orderId);
+      }
+
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify(existingOrders)
       );
-      setIsSubmitting(false);
-      return;
-    }
 
-    const { error: orderError } = await supabase
-      .from("orders")
-      .insert({
-        id: orderId,
-        restaurant_id: restaurantId,
-        table_id: tableId,
-        qr_token: table.qr_token,
-        status: "new",
-        total: total,
-      });
-
-    if (orderError) {
+      setCart([]);
+      setOrderSubmitted(true);
+    } catch (err) {
       setError(
-        orderError.message || "Could not create order."
+        err instanceof Error
+          ? err.message
+          : "Could not place order."
       );
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    const orderItems = cart.map((item) => ({
-      order_id: orderId,
-      menu_item_id: item.id,
-      item_name: item.name,
-      quantity: item.quantity,
-      unit_price: item.price,
-      subtotal: item.price * item.quantity,
-    }));
-
-    const { error: itemsError } = await supabase
-      .from("order_items")
-      .insert(orderItems);
-
-    if (itemsError) {
-      setError(itemsError.message);
-      setIsSubmitting(false);
-      return;
-    }
-
-    const storageKey = `menusasa_orders_${restaurantSlug}`;
-
-    const existingOrders = JSON.parse(
-      localStorage.getItem(storageKey) || "[]"
-    ) as string[];
-
-    if (!existingOrders.includes(orderId)) {
-      existingOrders.push(orderId);
-    }
-
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify(existingOrders)
-    );
-
-    setCart([]);
-    setOrderSubmitted(true);
-    setIsSubmitting(false);
   }
 
   if (orderSubmitted) {
@@ -210,22 +171,22 @@ export default function RestaurantMenu({
         </p>
 
         <div className="mt-6 space-y-3">
-  <Link
-    href={`/menu/${restaurantSlug}/orders?table=${tableNumber}`}
-    className="block w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98]"
-  >
-    View My Orders
-  </Link>
+          <Link
+            href={`/menu/${restaurantSlug}/orders?table=${tableNumber}&token=${encodeURIComponent(qrToken)}`}
+            className="block w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98]"
+          >
+            View My Orders
+          </Link>
 
-  <button
-    onClick={() => {
-      window.location.href = `/menu/${restaurantSlug}/table/${tableNumber}`;
-    }}
-    className="w-full rounded-lg border border-gray-300 px-4 py-4 font-semibold transition-all duration-150 hover:bg-gray-50 active:scale-[0.98]"
-  >
-    Home
-  </button>
-</div>
+          <button
+            onClick={() => {
+              window.location.href = `/menu/${restaurantSlug}/table/${tableNumber}`;
+            }}
+            className="w-full rounded-lg border border-gray-300 px-4 py-4 font-semibold transition-all duration-150 hover:bg-gray-50 active:scale-[0.98]"
+          >
+            Home
+          </button>
+        </div>
       </div>
     );
   }
@@ -233,7 +194,7 @@ export default function RestaurantMenu({
   return (
     <div className="space-y-10">
       <Link
-        href={`/menu/${restaurantSlug}/orders?table=${tableNumber}`}
+        href={`/menu/${restaurantSlug}/orders?table=${tableNumber}&token=${encodeURIComponent(qrToken)}`}
         className="inline-block rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50"
       >
         My Orders
@@ -255,7 +216,10 @@ export default function RestaurantMenu({
 
           {cart.length > 0 && (
             <button
-              onClick={() => setIsCheckingOut(true)}
+              onClick={() => {
+                setError("");
+                setIsCheckingOut(true);
+              }}
               className="w-full rounded-lg bg-black px-4 py-4 font-semibold text-white transition-all duration-150 hover:opacity-80 active:scale-[0.98]"
             >
               Checkout
@@ -337,7 +301,10 @@ export default function RestaurantMenu({
             </button>
 
             <button
-              onClick={() => setIsCheckingOut(false)}
+              onClick={() => {
+                setError("");
+                setIsCheckingOut(false);
+              }}
               disabled={isSubmitting}
               className="w-full rounded-lg border border-gray-300 px-4 py-4 font-semibold transition-all duration-150 hover:bg-gray-50 active:scale-[0.98]"
             >

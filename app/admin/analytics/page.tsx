@@ -1,4 +1,5 @@
-import { supabase } from "@/lib/supabase";
+
+import { createClientServer } from "@/lib/supabase-server";
 import SalesChart from "./SalesChart";
 
 type Order = {
@@ -9,9 +10,49 @@ type Order = {
 };
 
 export default async function AnalyticsPage() {
+  const supabase = await createClientServer();
+
+  // Verify the logged-in user.
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return (
+      <main className="min-h-screen bg-gray-50 p-6">
+        <h1 className="text-3xl font-bold">Analytics</h1>
+        <p className="mt-4 text-red-600">
+          Please sign in to view analytics.
+        </p>
+      </main>
+    );
+  }
+
+  // Find this user's restaurant.
+  const { data: restaurant, error: restaurantError } =
+    await supabase
+      .from("restaurants")
+      .select("id")
+      .eq("owner_id", user.id)
+      .maybeSingle();
+
+  if (restaurantError || !restaurant) {
+    return (
+      <main className="min-h-screen bg-gray-50 p-6">
+        <h1 className="text-3xl font-bold">Analytics</h1>
+        <p className="mt-4 text-red-600">
+          Could not find your restaurant.
+        </p>
+      </main>
+    );
+  }
+
+  // Fetch only this restaurant's orders.
   const { data: orders, error } = await supabase
     .from("orders")
     .select("id, total, status, created_at")
+    .eq("restaurant_id", restaurant.id)
     .order("created_at", {
       ascending: false,
     });
@@ -20,9 +61,7 @@ export default async function AnalyticsPage() {
     return (
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="mx-auto max-w-6xl">
-          <h1 className="text-3xl font-bold">
-            Analytics
-          </h1>
+          <h1 className="text-3xl font-bold">Analytics</h1>
 
           <div className="mt-6 rounded-xl bg-red-50 p-4 text-red-600">
             {error.message}
@@ -52,6 +91,7 @@ export default async function AnalyticsPage() {
       order.status === "ready"
   ).length;
 
+  // Prepare the last seven days of sales.
   const salesByDay: Record<string, number> = {};
 
   for (let i = 6; i >= 0; i--) {
@@ -74,8 +114,6 @@ export default async function AnalyticsPage() {
     }
   });
 
-  
-
   const salesChartData = Object.entries(salesByDay).map(
     ([date, sales]) => ({
       date: new Date(`${date}T00:00:00`).toLocaleDateString(
@@ -91,14 +129,13 @@ export default async function AnalyticsPage() {
   return (
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-3xl font-bold">
-          Analytics
-        </h1>
+        <h1 className="text-3xl font-bold">Analytics</h1>
 
         <p className="mt-2 text-gray-500">
           Overview of your restaurant's performance.
         </p>
 
+        {/* Statistics */}
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl bg-white p-6 shadow-sm">
             <p className="text-sm text-gray-500">
@@ -141,6 +178,7 @@ export default async function AnalyticsPage() {
           </div>
         </div>
 
+        {/* Sales chart */}
         <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="text-xl font-bold">
             Sales — Last 7 Days
@@ -151,6 +189,7 @@ export default async function AnalyticsPage() {
           </div>
         </div>
 
+        {/* Recent orders */}
         <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="text-xl font-bold">
             Recent Orders
