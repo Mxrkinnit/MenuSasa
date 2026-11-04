@@ -2,6 +2,17 @@
 @import "tailwindcss";
 
 :root {
+  /* MenuSasa brand colors */
+  --menusasa-green: #0F5132;
+  --menusasa-orange: #FF7A00;
+  --menusasa-cream: #FFF8EF;
+  --menusasa-white: #FFFFFF;
+  --menusasa-charcoal: #1F1F1F;
+  --menusasa-red: #E63946;
+
+  /* Existing application defaults */
+  --background: #FFFFFF;
+  --foreground: #1F1F1F;
   /* MenuSasa brand colours */
   --primary: #0F5132;
   --primary-hover: #0B3D26;
@@ -40,6 +51,15 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /* Reusable Tailwind theme colors */
+  --color-menusasa-green: var(--menusasa-green);
+  --color-menusasa-orange: var(--menusasa-orange);
+  --color-menusasa-cream: var(--menusasa-cream);
+  --color-menusasa-white: var(--menusasa-white);
+  --color-menusasa-charcoal: var(--menusasa-charcoal);
+  --color-menusasa-red: var(--menusasa-red);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

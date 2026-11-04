@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import RestaurantMenu from "../../../../components/RestaurantMenu";
 
@@ -40,24 +41,36 @@ export default async function TableMenuPage({
     tableNumberInt < 1
   ) {
     return (
-      <main className="p-8">
-        <h1 className="text-2xl font-bold">
-          Invalid table number
-        </h1>
+      <main className="flex min-h-screen items-center justify-center bg-menusasa-cream px-4 py-10">
+        <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-3xl">
+            ⚠️
+          </div>
+
+          <h1 className="mt-5 text-2xl font-extrabold text-menusasa-charcoal">
+            Invalid table number
+          </h1>
+        </div>
       </main>
     );
   }
 
   if (!token || token.length > 100) {
     return (
-      <main className="p-8">
-        <h1 className="text-2xl font-bold">
-          Invalid QR code
-        </h1>
+      <main className="flex min-h-screen items-center justify-center bg-menusasa-cream px-4 py-10">
+        <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-3xl">
+            ⚠️
+          </div>
 
-        <p className="mt-2 text-gray-500">
-          Please scan the QR code on your table.
-        </p>
+          <h1 className="mt-5 text-2xl font-extrabold text-menusasa-charcoal">
+            Invalid QR code
+          </h1>
+
+          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+            Please scan the QR code on your table.
+          </p>
+        </div>
       </main>
     );
   }
@@ -71,10 +84,16 @@ export default async function TableMenuPage({
 
   if (restaurantError || !restaurant) {
     return (
-      <main className="p-8">
-        <h1 className="text-2xl font-bold">
-          Restaurant not found
-        </h1>
+      <main className="flex min-h-screen items-center justify-center bg-menusasa-cream px-4 py-10">
+        <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-3xl">
+            ⚠️
+          </div>
+
+          <h1 className="mt-5 text-2xl font-extrabold text-menusasa-charcoal">
+            Restaurant not found
+          </h1>
+        </div>
       </main>
     );
   }
@@ -90,14 +109,20 @@ export default async function TableMenuPage({
 
   if (tableError || !table) {
     return (
-      <main className="p-8">
-        <h1 className="text-2xl font-bold">
-          Invalid table QR code
-        </h1>
+      <main className="flex min-h-screen items-center justify-center bg-menusasa-cream px-4 py-10">
+        <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-3xl">
+            ⚠️
+          </div>
 
-        <p className="mt-2 text-gray-500">
-          Please scan the correct QR code for your table.
-        </p>
+          <h1 className="mt-5 text-2xl font-extrabold text-menusasa-charcoal">
+            Invalid table QR code
+          </h1>
+
+          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+            Please scan the correct QR code for your table.
+          </p>
+        </div>
       </main>
     );
   }
@@ -114,14 +139,20 @@ export default async function TableMenuPage({
 
   if (categoriesError) {
     return (
-      <main className="p-8">
-        <h1 className="text-2xl font-bold">
-          Could not load menu
-        </h1>
+      <main className="flex min-h-screen items-center justify-center bg-menusasa-cream px-4 py-10">
+        <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-3xl">
+            ⚠️
+          </div>
 
-        <p className="mt-2">
-          {categoriesError.message}
-        </p>
+          <h1 className="mt-5 text-2xl font-extrabold text-menusasa-charcoal">
+            Could not load menu
+          </h1>
+
+          <p className="mt-3 text-sm leading-relaxed text-menusasa-red">
+            {categoriesError.message}
+          </p>
+        </div>
       </main>
     );
   }
@@ -129,30 +160,38 @@ export default async function TableMenuPage({
   const typedCategories = categories as Category[];
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <header className="bg-white px-6 py-8 shadow-sm">
-        <h1 className="text-3xl font-bold">
-          {restaurant.name}
-        </h1>
+    <main className="min-h-screen bg-menusasa-cream">
+      {/* RESTAURANT HEADER */}
+      <header className="bg-menusasa-green px-4 py-8 text-white sm:px-6 sm:py-10">
+        <div className="mx-auto max-w-3xl">
+          <p className="text-xs font-bold uppercase tracking-widest text-orange-200">
+            Welcome to MenuSasa
+          </p>
 
-        <p className="mt-2 text-gray-500">
-          Table {table.table_number}
-        </p>
+          <h1 className="mt-3 text-3xl font-extrabold sm:text-4xl">
+            {restaurant.name}
+          </h1>
 
-        <p className="mt-1 text-sm text-gray-400">
-          Browse our menu and place your order.
-        </p>
+          <div className="mt-4 inline-flex items-center rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white">
+            Table {table.table_number}
+          </div>
+
+          <p className="mt-4 text-sm text-green-50">
+            Browse our menu and place your order.
+          </p>
+        </div>
       </header>
 
+      {/* CUSTOMER MENU */}
       <div className="mx-auto max-w-3xl px-4 py-8">
         <RestaurantMenu
-  categories={typedCategories}
-  restaurantId={restaurant.id}
-  restaurantSlug={restaurantSlug}
-  tableId={table.id}
-  tableNumber={tableNumber}
-  qrToken={token}
-/>
+          categories={typedCategories}
+          restaurantId={restaurant.id}
+          restaurantSlug={restaurantSlug}
+          tableId={table.id}
+          tableNumber={tableNumber}
+          qrToken={token}
+        />
       </div>
     </main>
   );
